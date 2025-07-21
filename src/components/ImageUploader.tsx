@@ -1,29 +1,50 @@
-// src/components/ImageUploader.tsx
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import axios from 'axios';
 
 function ImageUploader() {
   const [preview, setPreview] = useState<string | null>(null);
+  const [processedImage, setProcessedImage] = useState<string | null>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
 
-    // 파일 미리보기 URL 생성
+    // 미리보기용 base64 이미지
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPreview(reader.result as string); // base64 string
+      setPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
 
-    console.log("업로드된 파일:", file);
+    // 서버에 이미지 전송
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await axios.post('/api/pixelate', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        responseType: 'blob', // ← 이미지를 blob으로 받기
+      });
+
+      const imageBlob = new Blob([response.data]);
+      const imageUrl = URL.createObjectURL(imageBlob);
+
+      console.log("response from server:", response);
+      console.log("imageUrl:", imageUrl);
+
+      setProcessedImage(imageUrl);
+    } catch (err) {
+      console.error('이미지 처리 실패:', err);
+    }
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   return (
     <div style={{ textAlign: 'center' }}>
-      {/* 드래그앤드롭 영역 */}
       <div
         {...getRootProps()}
         style={{
@@ -40,15 +61,17 @@ function ImageUploader() {
           : <p>클릭하거나 드래그하여 이미지를 업로드하세요</p>}
       </div>
 
-      {/* 이미지 미리보기 */}
       {preview && (
         <div>
-          <h3>미리보기</h3>
-          <img
-            src={preview}
-            alt="preview"
-            style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}
-          />
+          <h3>업로드한 원본 이미지</h3>
+          <img src={preview} alt="original preview" style={{ maxWidth: '300px' }} />
+        </div>
+      )}
+
+      {processedImage && (
+        <div style={{ marginTop: '30px' }}>
+          <h3>픽셀화된 결과 이미지</h3>
+          <img src={processedImage} alt="pixelated result" style={{ maxWidth: '300px' }} />
         </div>
       )}
     </div>
