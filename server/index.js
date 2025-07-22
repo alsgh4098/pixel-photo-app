@@ -51,7 +51,7 @@ app.post('/api/pixelate', upload.single('image'), async (req, res) => {
 
     // Sharp로 픽셀화 처리 (리사이즈 → 원래 크기로 리사이즈)
     await sharp(inputPath)
-      .resize(20) // 작게 줄이고
+      .resize(10) // 작게 줄이고
       .resize(256, 256, { kernel: sharp.kernel.nearest }) // 다시 키움 → 픽셀화 느낌
       .toFile(outputPath);
 
