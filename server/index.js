@@ -43,22 +43,26 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 
-// POST /api/pixelate: 이미지 업로드 + 픽셀화 처리
-app.post('/api/pixelate', upload.single('image'), async (req, res) => {
+// POST /api/filter: 이미지 업로드 + 필름카메라 효과 처리
+app.post('/api/filter', upload.single('image'), async (req, res) => {
   try {
-    const inputPath = req.file.path; // 업로드된 원본
-    const outputPath = `uploads/pixelated-${req.file.filename}`;
+    const inputPath = req.file.path;
+    const outputPath = `uploads/filtered-${req.file.filename}`;
 
-    // Sharp로 픽셀화 처리 (리사이즈 → 원래 크기로 리사이즈)
+    // 필름카메라 느낌으로 이미지 색감 보정
     await sharp(inputPath)
-      .resize(10) // 작게 줄이고
-      .resize(256, 256, { kernel: sharp.kernel.nearest }) // 다시 키움 → 픽셀화 느낌
+      .resize(800) // 크기 통일 (선택사항)
+      .modulate({
+        brightness: 1.05, // 살짝 밝게
+        saturation: 1.3,  // 더 선명하게
+        hue: 15           // 따뜻한 색감
+      })
+      .tint('#ffddb3') // 따뜻한 옐로우 필터
       .toFile(outputPath);
 
-    // 결과 이미지 전송
     res.sendFile(path.resolve(outputPath));
   } catch (err) {
     console.error(err);
-    res.status(500).send('이미지 처리 중 오류 발생');
+    res.status(500).send('이미지 필터 적용 중 오류 발생');
   }
 });
